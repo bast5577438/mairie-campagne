@@ -28,9 +28,6 @@
   --danger-bg:#4a1b0c;--danger:#f09575;
 }}
 body{background:var(--bg3);color:var(--text);min-height:100vh}
-/* Auth screen */
-#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg3)}
-#auth-box{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:2rem;width:100%;max-width:380px;margin:1rem}
 /* Nav */
 nav{background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:2px;position:sticky;top:0;z-index:200;flex-wrap:wrap}
 .brand{font-size:15px;font-weight:500;padding:14px 16px 14px 0;border-right:0.5px solid var(--border);margin-right:6px;white-space:nowrap}
@@ -39,7 +36,6 @@ nav{background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 20px;
 .ntab:hover{color:var(--text)}
 .ntab.on{color:var(--text);border-bottom-color:var(--text);font-weight:500}
 .new-badge{font-size:10px;padding:2px 6px;border-radius:999px;background:var(--success-bg);color:var(--success);margin-left:4px;vertical-align:middle}
-.user-bar{margin-left:auto;display:flex;align-items:center;gap:10px;padding:6px 0}
 /* Layout */
 .page{display:none;max-width:1100px;margin:0 auto;padding:20px}
 .page.on{display:block}
@@ -120,22 +116,7 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
 </head>
 <body>
 
-<!-- ═══ ÉCRAN AUTH ════════════════════════════════════════════════════════════ -->
-<div id="auth-screen">
-  <div id="auth-box">
-    <div style="font-size:18px;font-weight:500;margin-bottom:6px">Mairie<span style="color:var(--text2)">Campagne</span></div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.6">Outil de collecte des parrainages pour la campagne présidentielle 2027.</p>
-    <div class="field">
-      <label>Votre email</label>
-      <input type="email" id="auth-email" placeholder="prenom@exemple.fr" onkeydown="if(event.key==='Enter')sendMagicLink()">
-    </div>
-    <button class="btn-primary btn" id="auth-btn" onclick="sendMagicLink()" style="width:100%;margin-top:4px">Recevoir le lien de connexion</button>
-    <div id="auth-msg" style="margin-top:12px;font-size:13px;color:var(--text2);min-height:20px"></div>
-  </div>
-</div>
-
-<!-- ═══ APPLICATION PRINCIPALE ═══════════════════════════════════════════════ -->
-<div id="main-app" style="display:none">
+<div id="main-app">
 
 <nav>
   <div class="brand">Mairie<span>Campagne</span></div>
@@ -144,10 +125,9 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
   <button class="ntab" onclick="goTab('avancement',this)">Avancement</button>
   <button class="ntab" onclick="goTab('mails',this)">Mails types <span class="new-badge">Nouveau</span></button>
   <button class="ntab" onclick="goTab('tuto',this)">Tutoriel <span class="new-badge">Nouveau</span></button>
-  <div class="user-bar">
+  <div style="margin-left:auto;padding:6px 0;display:flex;align-items:center;gap:6px">
     <span id="sync-dot"></span>
-    <span id="user-email" style="font-size:12px;color:var(--text2)"></span>
-    <button class="btn btn-sm" onclick="sb.auth.signOut()">Déconnexion</button>
+    <span id="sync-lbl" style="font-size:11px;color:var(--text3)"></span>
   </div>
 </nav>
 
@@ -273,7 +253,6 @@ let sejours  = [];
 let contacts = {};
 let selIdx   = null;
 let _rows    = [];
-let _currentUserId = null;
 const _saveDebounce = {};
 
 // ── Config statuts ────────────────────────────────────────────────────────────
@@ -365,42 +344,8 @@ const TUTO = [
   {icon:'✅',title:'Collectez la signature',desc:"RDV accepté → confirmez par email (template fourni). Lors de la visite, le maire signe le formulaire officiel du Conseil constitutionnel. Passez le statut à 'Accepté' !"},
 ];
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-async function sendMagicLink(){
-  const email = document.getElementById('auth-email').value.trim();
-  if(!email) return;
-  const btn = document.getElementById('auth-btn');
-  btn.disabled = true; btn.textContent = 'Envoi…';
-  const { error } = await sb.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
-  const msg = document.getElementById('auth-msg');
-  if(error){
-    msg.textContent = '❌ ' + error.message;
-    btn.disabled = false; btn.textContent = 'Recevoir le lien de connexion';
-  } else {
-    msg.textContent = '✅ Lien envoyé à ' + email + '. Vérifiez votre boîte mail (et les spams).';
-    btn.textContent = 'Lien envoyé ✓';
-  }
-}
-
-async function initAuth(){
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session) await showApp(session.user);
-
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if(session){
-      await showApp(session.user);
-    } else {
-      document.getElementById('auth-screen').style.display = 'flex';
-      document.getElementById('main-app').style.display = 'none';
-    }
-  });
-}
-
-async function showApp(user){
-  _currentUserId = user.id;
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
-  document.getElementById('user-email').textContent = user.email;
+// ── Init app ──────────────────────────────────────────────────────────────────
+async function initApp(){
   await loadFromSupabase();
   setupRealtime();
   initMap();
@@ -412,7 +357,9 @@ async function showApp(user){
 // ── Supabase data ─────────────────────────────────────────────────────────────
 function setSyncing(on){
   const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-lbl');
   if(dot) dot.className = on ? 'saving' : '';
+  if(lbl) lbl.textContent = on ? 'Sync…' : '';
 }
 
 async function loadFromSupabase(){
@@ -439,7 +386,7 @@ async function upsertContact(key){
   await sb.from('contacts').upsert({
     key, statut:c.statut, tel:c.tel||'', email:c.email||'',
     notes:c.notes||'', history:c.history||[], maire_nom:c.maire_nom||'',
-    updated_at: new Date().toISOString(), updated_by: _currentUserId
+    updated_at: new Date().toISOString()
   });
   setSyncing(false);
 }
@@ -453,8 +400,7 @@ async function upsertSejour(s){
   setSyncing(true);
   await sb.from('sejours').upsert({
     id:s.id, nom:s.nom, date:s.date||'',
-    polygon:s.polygon, commune_keys:s.communeKeys,
-    created_by: _currentUserId
+    polygon:s.polygon, commune_keys:s.communeKeys
   });
   setSyncing(false);
 }
@@ -624,7 +570,7 @@ async function generateSejour(){
   communeKeys.forEach(k => {
     if(!contacts[k]){
       contacts[k] = {statut:'Pas encore fait',tel:'',email:'',notes:'',history:[]};
-      newContacts.push({key:k, statut:'Pas encore fait', tel:'', email:'', notes:'', history:[], maire_nom:'', updated_by:_currentUserId});
+      newContacts.push({key:k, statut:'Pas encore fait', tel:'', email:'', notes:'', history:[], maire_nom:''});
     }
   });
 
@@ -661,12 +607,12 @@ function importFromBackup(input){
         const id = 'imp' + Date.now().toString(36) + si;
         const communeKeys = (s.communes||[]).map(c=>'imp:'+c.nom+':'+c.cp);
         sejours.push({id, nom:s.nom, date:s.date||'', polygon:[], communeKeys});
-        sejoursToSave.push({id, nom:s.nom, date:s.date||'', polygon:[], commune_keys:communeKeys, created_by:_currentUserId});
+        sejoursToSave.push({id, nom:s.nom, date:s.date||'', polygon:[], commune_keys:communeKeys});
         (s.communes||[]).forEach(c => {
           const key = 'imp:'+c.nom+':'+c.cp;
           if(!contacts[key]){
             contacts[key] = {statut:c.statut||'Pas encore fait',tel:'',email:'',notes:'',history:[],maire_nom:c.maire||''};
-            contactsToSave.push({key, statut:c.statut||'Pas encore fait', tel:'', email:'', notes:'', history:[], maire_nom:c.maire||'', updated_by:_currentUserId});
+            contactsToSave.push({key, statut:c.statut||'Pas encore fait', tel:'', email:'', notes:'', history:[], maire_nom:c.maire||''});
             imported++;
           }
         });
@@ -930,9 +876,9 @@ function renderTuto(){
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-initAuth();
 renderMails();
 renderTuto();
+initApp();
 </script>
 </body>
 </html>
