@@ -557,8 +557,8 @@ function resetMap(){
 
 function renderPts(){
   const el = document.getElementById('pts-display');
-  if(!pts.length){ el.textContent = 'Aucune zone définie — utilisez le bouton ✏️ sur la carte.'; return; }
-  el.textContent = `✅ Zone définie — ${pts.length} sommets`;
+  if(!pts.length){ el.textContent = 'Aucune zone définie.'; return; }
+  el.textContent = `Zone définie — ${pts.length} sommets`;
 }
 
 // ── Point dans polygone ───────────────────────────────────────────────────────
