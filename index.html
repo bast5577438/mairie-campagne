@@ -164,7 +164,7 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
     </div>
 
     <div class="step-t"><span class="step-n">2</span>Délimitez votre zone sur la carte</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Cliquez le bouton ✏️ dans la barre d'outils de la carte pour dessiner un polygone. Chaque clic ajoute un sommet — double-clic ou clic sur le premier point pour fermer. Vous pouvez éditer les sommets ensuite.</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Cliquez <span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-size:12px">⬠ Dessiner</span> dans la barre à gauche de la carte. Chaque clic ajoute un sommet — double-clic pour fermer. Modifiez ensuite avec le crayon, effacez avec la poubelle.</p>
     <div id="map"></div>
     <div id="pts-display" style="font-size:12px;color:var(--text3);margin:6px 0 14px"></div>
 
@@ -353,13 +353,9 @@ const TUTO = [
 
 // ── Init app ──────────────────────────────────────────────────────────────────
 async function initApp(){
-  // Affiche l'UI immédiatement, sans attendre Supabase
   renderMails();
   renderTuto();
-  initMap();
-  renderSejours(); // vide au départ
-
-  // Charge les données en arrière-plan puis rafraîchit
+  renderSejours();
   await loadFromSupabase();
   setupRealtime();
   renderSejours();
@@ -625,7 +621,10 @@ function goTab(name, btn){
   if(btn) btn.classList.add('on');
   if(name==='avancement'){ updateSejourSel(); renderAvancement(); }
   if(name==='sejours')    { renderSejours(); }
-  if(name==='add' && map) { setTimeout(()=>map.invalidateSize(), 50); }
+  if(name==='add'){
+    if(!map) { initMap(); }
+    else     { setTimeout(()=>map.invalidateSize(), 50); }
+  }
 }
 
 // ── Import sauvegarde ─────────────────────────────────────────────────────────
