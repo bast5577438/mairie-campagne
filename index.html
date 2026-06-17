@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MairieCampagne — Collecte des parrainages 2027</title>
+<link rel="dns-prefetch" href="https://unpkg.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="https://basemaps.cartocdn.com">
+<link rel="dns-prefetch" href="https://iwxpfkpbzjqnoqlshouh.supabase.co">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
 <style>
@@ -347,12 +352,16 @@ const TUTO = [
 
 // ── Init app ──────────────────────────────────────────────────────────────────
 async function initApp(){
-  await loadFromSupabase();
-  setupRealtime();
-  initMap();
-  renderSejours();
+  // Affiche l'UI immédiatement, sans attendre Supabase
   renderMails();
   renderTuto();
+  initMap();
+  renderSejours(); // vide au départ
+
+  // Charge les données en arrière-plan puis rafraîchit
+  await loadFromSupabase();
+  setupRealtime();
+  renderSejours();
 }
 
 // ── Supabase data ─────────────────────────────────────────────────────────────
@@ -503,7 +512,7 @@ let map, drawnItems, drawControl, pts = [];
 
 function initMap(){
   map = L.map('map').setView([46.5, 2.5], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(map);
 
   drawnItems = new L.FeatureGroup().addTo(map);
 
