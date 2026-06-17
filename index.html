@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MairieCampagne — Collecte des parrainages 2027</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -157,10 +158,9 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
     </div>
 
     <div class="step-t"><span class="step-n">2</span>Délimitez votre zone sur la carte</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Cliquez 4 points pour former le polygone de la zone à couvrir.</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Cliquez le bouton ✏️ dans la barre d'outils de la carte pour dessiner un polygone. Chaque clic ajoute un sommet — double-clic ou clic sur le premier point pour fermer. Vous pouvez éditer les sommets ensuite.</p>
     <div id="map"></div>
-    <div id="pts-display" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px"></div>
-    <button class="btn" onclick="resetMap()" style="margin-bottom:1.5rem;font-size:13px">✕ Réinitialiser la zone</button>
+    <div id="pts-display" style="font-size:12px;color:var(--text3);margin:6px 0 14px"></div>
 
     <div class="step-t"><span class="step-n">3</span>Bases de données</div>
     <label class="upload" onclick="document.getElementById('f-com').click()">
@@ -236,6 +236,7 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
 </div><!-- /main-app -->
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -497,37 +498,61 @@ function loadMaires(input){
   });
 }
 
-// ── Carte Leaflet ─────────────────────────────────────────────────────────────
-let map, mapPoly, pts = [];
+// ── Carte Leaflet + Draw ──────────────────────────────────────────────────────
+let map, drawnItems, drawControl, pts = [];
 
 function initMap(){
   map = L.map('map').setView([46.5, 2.5], 6);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
-  map.on('click', e => {
-    if(pts.length >= 4) return;
-    pts.push([e.latlng.lat, e.latlng.lng]);
-    renderPts();
-    if(pts.length >= 3){
-      if(mapPoly) map.removeLayer(mapPoly);
-      mapPoly = L.polygon(pts, {color:'#185FA5',weight:2,fillOpacity:.1}).addTo(map);
-      if(pts.length === 4) map.fitBounds(mapPoly.getBounds(),{padding:[20,20]});
+
+  drawnItems = new L.FeatureGroup().addTo(map);
+
+  drawControl = new L.Control.Draw({
+    edit: { featureGroup: drawnItems, remove: true },
+    draw: {
+      polygon: {
+        allowIntersection: false,
+        showArea: false,
+        shapeOptions: { color:'#185FA5', weight:2, fillOpacity:.12 }
+      },
+      polyline: false, rectangle: false, circle: false,
+      circlemarker: false, marker: false
     }
   });
+  map.addControl(drawControl);
+
+  map.on(L.Draw.Event.CREATED, e => {
+    drawnItems.clearLayers();
+    drawnItems.addLayer(e.layer);
+    pts = e.layer.getLatLngs()[0].map(ll => [ll.lat, ll.lng]);
+    renderPts();
+  });
+
+  map.on(L.Draw.Event.EDITED, () => {
+    drawnItems.eachLayer(layer => {
+      pts = layer.getLatLngs()[0].map(ll => [ll.lat, ll.lng]);
+    });
+    renderPts();
+  });
+
+  map.on(L.Draw.Event.DELETED, () => {
+    pts = [];
+    renderPts();
+  });
+
   renderPts();
 }
 
 function resetMap(){
   pts = [];
-  if(mapPoly){ map.removeLayer(mapPoly); mapPoly=null; }
+  if(drawnItems) drawnItems.clearLayers();
   renderPts();
 }
 
 function renderPts(){
   const el = document.getElementById('pts-display');
-  if(!pts.length){ el.innerHTML='<span style="font-size:12px;color:var(--text3)">Aucun point — cliquez sur la carte</span>'; return; }
-  el.innerHTML = pts.map((p,i)=>
-    `<span style="font-size:12px;padding:3px 8px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r)">${i+1}. ${p[0].toFixed(3)}, ${p[1].toFixed(3)}</span>`
-  ).join('');
+  if(!pts.length){ el.textContent = 'Aucune zone définie — utilisez le bouton ✏️ sur la carte.'; return; }
+  el.textContent = `✅ Zone définie — ${pts.length} sommets`;
 }
 
 // ── Point dans polygone ───────────────────────────────────────────────────────
