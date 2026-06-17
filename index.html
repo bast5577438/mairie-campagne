@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MairieCampagne — Collecte des parrainages 2027</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f5f5f3;--bg3:#efefec;
+  --text:#1a1a18;--text2:#6b6b68;--text3:#9b9b97;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.2);
+  --success-bg:#e1f5ee;--success:#0f6e56;
+  --warning-bg:#faeeda;--warning:#ba7517;
+  --info-bg:#e6f1fb;--info:#185fa5;
+  --danger-bg:#faece7;--danger:#993c1d;
+  --r:8px;--rl:12px;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a18;--bg2:#242422;--bg3:#2c2c2a;
+  --text:#f0efea;--text2:#a0a09b;--text3:#6b6b68;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+  --success-bg:#085041;--success:#5dcaa5;
+  --warning-bg:#633806;--warning:#fac775;
+  --info-bg:#0c447c;--info:#85b7eb;
+  --danger-bg:#4a1b0c;--danger:#f09575;
+}}
+body{background:var(--bg3);color:var(--text);min-height:100vh}
+/* Auth screen */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg3)}
+#auth-box{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:2rem;width:100%;max-width:380px;margin:1rem}
+/* Nav */
+nav{background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:2px;position:sticky;top:0;z-index:200;flex-wrap:wrap}
+.brand{font-size:15px;font-weight:500;padding:14px 16px 14px 0;border-right:0.5px solid var(--border);margin-right:6px;white-space:nowrap}
+.brand span{color:var(--text2)}
+.ntab{padding:13px 14px;font-size:13px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:var(--text2);font-family:inherit;white-space:nowrap}
+.ntab:hover{color:var(--text)}
+.ntab.on{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+.new-badge{font-size:10px;padding:2px 6px;border-radius:999px;background:var(--success-bg);color:var(--success);margin-left:4px;vertical-align:middle}
+.user-bar{margin-left:auto;display:flex;align-items:center;gap:10px;padding:6px 0}
+/* Layout */
+.page{display:none;max-width:1100px;margin:0 auto;padding:20px}
+.page.on{display:block}
+/* Card */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl)}
+.cp{padding:1rem 1.25rem}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:1.5rem}
+.stat{background:var(--bg2);border-radius:var(--r);padding:12px}
+.stat-label{font-size:11px;color:var(--text2);margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:500}
+/* Progress */
+.prog{margin-bottom:1.5rem}
+.prog-hd{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:6px}
+.prog-bar{height:8px;background:var(--bg2);border-radius:999px;overflow:hidden}
+.prog-fill{height:100%;background:var(--success);border-radius:999px;transition:width .4s}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.tbl th{text-align:left;padding:8px 12px;font-weight:500;font-size:11px;color:var(--text2);border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:9px 12px;border-bottom:0.5px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover td{background:var(--bg2)}
+.tbl tbody tr.sel td{background:var(--info-bg)}
+/* Badge */
+.badge{font-size:11px;padding:3px 8px;border-radius:999px;white-space:nowrap;display:inline-block}
+/* Split */
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:1rem;align-items:start}
+/* Detail */
+.dp-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.wf-step{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--r);font-size:12px}
+.wf-conn{width:1px;height:5px;background:var(--border);margin-left:14px}
+/* Buttons */
+button{font-family:inherit;cursor:pointer;border-radius:var(--r);transition:opacity .15s}
+.btn{background:var(--bg);border:0.5px solid var(--border2);color:var(--text);font-size:13px;padding:7px 14px}
+.btn:hover{background:var(--bg2)}
+.btn-full{width:100%;display:flex;align-items:center;gap:8px;justify-content:center}
+.btn-primary{background:var(--text);color:var(--bg);border:none;font-size:14px;padding:10px 22px;font-weight:500}
+.btn-primary:hover{opacity:.85}
+.btn-sm{font-size:12px;padding:5px 10px}
+/* Form */
+input,select,textarea{font-family:inherit;font-size:13px;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r);padding:7px 11px;color:var(--text);width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px rgba(24,95,165,.12)}
+label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
+.field{margin-bottom:14px}
+.row2{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+/* Map */
+#map{height:300px;border-radius:var(--r);overflow:hidden;border:0.5px solid var(--border);margin:10px 0}
+/* Step title */
+.step-t{font-size:15px;font-weight:500;margin:1.5rem 0 12px;display:flex;align-items:center;gap:8px}
+.step-n{width:24px;height:24px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
+/* Upload */
+.upload{border:0.5px dashed var(--border2);border-radius:var(--r);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer;background:var(--bg2)}
+.upload:hover{border-color:var(--info)}
+.upload input[type=file]{display:none}
+/* Séjour cards */
+.sejour-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
+.scard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:1rem 1.25rem;cursor:pointer;transition:border-color .15s}
+.scard:hover{border-color:var(--border2)}
+.scard.add{border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:110px;color:var(--text2);font-size:14px;gap:8px}
+/* Template card */
+.tplcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:1rem 1.25rem;margin-bottom:1rem}
+.tplpre{font-size:12px;color:var(--text2);background:var(--bg2);padding:10px 12px;border-radius:var(--r);white-space:pre-wrap;line-height:1.5;font-family:monospace;max-height:130px;overflow:hidden;margin-bottom:12px}
+/* Tuto */
+.tuto-item{display:flex;gap:1rem;align-items:flex-start}
+.tuto-icon{width:36px;height:36px;border-radius:50%;background:var(--bg2);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tuto-conn{width:1px;flex:1;min-height:20px;background:var(--border);margin-top:4px}
+/* Alert */
+.alert{padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:12px}
+/* Filters */
+.filters{display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.filters select{width:auto;font-size:13px;padding:6px 10px}
+.filters label{margin:0}
+/* Sync indicator */
+#sync-dot{width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block;margin-right:4px;transition:background .3s}
+#sync-dot.saving{background:var(--warning)}
+</style>
+</head>
+<body>
+
+<!-- ═══ ÉCRAN AUTH ════════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div id="auth-box">
+    <div style="font-size:18px;font-weight:500;margin-bottom:6px">Mairie<span style="color:var(--text2)">Campagne</span></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.6">Outil de collecte des parrainages pour la campagne présidentielle 2027.</p>
+    <div class="field">
+      <label>Votre email</label>
+      <input type="email" id="auth-email" placeholder="prenom@exemple.fr" onkeydown="if(event.key==='Enter')sendMagicLink()">
+    </div>
+    <button class="btn-primary btn" id="auth-btn" onclick="sendMagicLink()" style="width:100%;margin-top:4px">Recevoir le lien de connexion</button>
+    <div id="auth-msg" style="margin-top:12px;font-size:13px;color:var(--text2);min-height:20px"></div>
+  </div>
+</div>
+
+<!-- ═══ APPLICATION PRINCIPALE ═══════════════════════════════════════════════ -->
+<div id="main-app" style="display:none">
+
+<nav>
+  <div class="brand">Mairie<span>Campagne</span></div>
+  <button class="ntab on" onclick="goTab('sejours',this)">Séjours</button>
+  <button class="ntab" onclick="goTab('add',this)">+ Ajouter un séjour</button>
+  <button class="ntab" onclick="goTab('avancement',this)">Avancement</button>
+  <button class="ntab" onclick="goTab('mails',this)">Mails types <span class="new-badge">Nouveau</span></button>
+  <button class="ntab" onclick="goTab('tuto',this)">Tutoriel <span class="new-badge">Nouveau</span></button>
+  <div class="user-bar">
+    <span id="sync-dot"></span>
+    <span id="user-email" style="font-size:12px;color:var(--text2)"></span>
+    <button class="btn btn-sm" onclick="sb.auth.signOut()">Déconnexion</button>
+  </div>
+</nav>
+
+<!-- ═══ PAGE : SÉJOURS ═══════════════════════════════════════════════════════ -->
+<div class="page on" id="page-sejours">
+  <div class="prog">
+    <div class="prog-hd"><span>Objectif : 500 parrainages</span><span id="prog-lbl" style="font-weight:500;color:var(--text)">0 / 500</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="sejour-grid" id="sejour-grid"></div>
+  <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label class="btn" style="cursor:pointer;font-size:13px">
+      📥 Importer depuis l'ancien site
+      <input type="file" accept=".json" style="display:none" onchange="importFromBackup(this)">
+    </label>
+    <span id="import-status" style="font-size:13px;color:var(--text2)"></span>
+  </div>
+</div>
+
+<!-- ═══ PAGE : AJOUTER ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-add">
+  <div style="max-width:600px">
+    <div class="step-t"><span class="step-n">1</span>Nommez votre séjour</div>
+    <div class="row2 field">
+      <div><label>Nom du séjour *</label><input id="add-nom" type="text" placeholder="Ex : Ariège — Mai 2025"></div>
+      <div><label>Période (optionnel)</label><input id="add-date" type="text" placeholder="15-20 mai 2025"></div>
+    </div>
+
+    <div class="step-t"><span class="step-n">2</span>Délimitez votre zone sur la carte</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Cliquez 4 points pour former le polygone de la zone à couvrir.</p>
+    <div id="map"></div>
+    <div id="pts-display" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px"></div>
+    <button class="btn" onclick="resetMap()" style="margin-bottom:1.5rem;font-size:13px">✕ Réinitialiser la zone</button>
+
+    <div class="step-t"><span class="step-n">3</span>Bases de données</div>
+    <label class="upload" onclick="document.getElementById('f-com').click()">
+      <div>
+        <div style="font-size:13px;font-weight:500">🏘️ Communes</div>
+        <div id="com-status" style="font-size:12px;color:var(--text2)">Charger communes-france-2025.csv</div>
+      </div>
+      <span id="com-btn" style="font-size:12px;color:var(--text2)">Charger</span>
+      <input type="file" id="f-com" accept=".csv" onchange="loadCommunes(this)">
+    </label>
+    <label class="upload" onclick="document.getElementById('f-mai').click()">
+      <div>
+        <div style="font-size:13px;font-weight:500">👤 Maires</div>
+        <div id="mai-status" style="font-size:12px;color:var(--text2)">Charger elus-maires-2027.csv</div>
+      </div>
+      <span id="mai-btn" style="font-size:12px;color:var(--text2)">Charger</span>
+      <input type="file" id="f-mai" accept=".csv" onchange="loadMaires(this)">
+    </label>
+
+    <div class="step-t" style="margin-top:1.5rem"><span class="step-n">4</span>Générer le séjour</div>
+    <button class="btn-primary btn" onclick="generateSejour()" style="width:100%">▶ Générer la liste et créer le séjour</button>
+    <div id="gen-result" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE : AVANCEMENT ════════════════════════════════════════════════════ -->
+<div class="page" id="page-avancement">
+  <div class="stats" id="stats-grid"></div>
+  <div class="prog">
+    <div class="prog-hd"><span>Objectif : 500 parrainages</span><span id="prog-av-lbl" style="font-weight:500;color:var(--text)">0 / 500</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-av-fill" style="width:0%"></div></div>
+  </div>
+  <div class="filters">
+    <label>Séjour :</label>
+    <select id="filter-sej" onchange="renderTable()"><option value="all">Tous</option></select>
+    <label>Statut :</label>
+    <select id="filter-stat" onchange="renderTable()">
+      <option value="all">Tous</option>
+      <option>Pas encore fait</option><option>Mail envoyé</option>
+      <option>En cours</option><option>Date prévue</option>
+      <option>Accepté</option><option>Refusé</option>
+    </select>
+    <span id="count-lbl" style="font-size:12px;color:var(--text2);margin-left:auto"></span>
+  </div>
+  <div class="split">
+    <div class="card" style="overflow:hidden">
+      <table class="tbl">
+        <colgroup><col style="width:26%"><col style="width:28%"><col style="width:22%"><col style="width:24%"></colgroup>
+        <thead><tr>
+          <th>Commune</th><th>Maire</th><th>Séjour</th><th>Statut</th>
+        </tr></thead>
+        <tbody id="av-body"></tbody>
+      </table>
+    </div>
+    <div class="card cp" id="detail-panel" style="min-height:400px">
+      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text2);font-size:14px">← Cliquez sur un maire</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE : MAILS TYPES ════════════════════════════════════════════════════ -->
+<div class="page" id="page-mails">
+  <p style="color:var(--text2);font-size:14px;margin-bottom:1.5rem">Un template par étape. Cliquez "Copier", remplacez les <code style="font-size:11px;background:var(--warning-bg);color:var(--warning);padding:1px 5px;border-radius:3px">{{variables}}</code> et envoyez depuis votre boîte mail.</p>
+  <div id="mails-container"></div>
+</div>
+
+<!-- ═══ PAGE : TUTORIEL ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-tuto">
+  <p style="color:var(--text2);font-size:14px;margin-bottom:1.5rem">Guide pour les bénévoles — du premier contact au parrainage signé.</p>
+  <div id="tuto-container"></div>
+</div>
+
+</div><!-- /main-app -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+'use strict';
+
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://iwxpfkpbzjqnoqlshouh.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eHBma3Biempxbm9xbHNob3VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTc1MDAsImV4cCI6MjA5Njc5MzUwMH0.Gc9iz6OEbj5U1zidTKVWlvuo8PNtPbyMU3AT_sXKSKo';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── État global ───────────────────────────────────────────────────────────────
+let communes = [];
+let maires   = {};
+let sejours  = [];
+let contacts = {};
+let selIdx   = null;
+let _rows    = [];
+let _currentUserId = null;
+const _saveDebounce = {};
+
+// ── Config statuts ────────────────────────────────────────────────────────────
+const SC = {
+  'Pas encore fait': {c:'#5F5E5A',bg:'#F1EFE8',tpl:'init'},
+  'Mail envoyé':     {c:'#185FA5',bg:'#E6F1FB',tpl:'relance'},
+  'En cours':        {c:'#BA7517',bg:'#FAEEDA',tpl:'appel'},
+  'Date prévue':     {c:'#3B6D11',bg:'#EAF3DE',tpl:'rdv'},
+  'Accepté':         {c:'#0F6E56',bg:'#E1F5EE',tpl:null},
+  'Refusé':          {c:'#993C1D',bg:'#FAECE7',tpl:null},
+};
+const WF = ['Pas encore fait','Mail envoyé','En cours','Date prévue','Accepté'];
+const WL = {'Pas encore fait':'Pas contacté','Mail envoyé':'Mail envoyé','En cours':'En discussion','Date prévue':'Date fixée','Accepté':'Accepté'};
+
+// ── Templates email ───────────────────────────────────────────────────────────
+const TPLS = {
+  init: {
+    title:'Premier contact', step:1,
+    when:'Statut : pas encore contacté',
+    obj:'Parrainage présidentiel 2027 — {{COMMUNE}}',
+    body:`Madame/Monsieur le Maire,
+
+Je me permets de vous contacter au nom de la campagne [NOM DU CANDIDAT] pour la présidentielle de 2027.
+
+Notre candidat porte un projet [RÉSUMÉ EN 1-2 LIGNES]. Dans ce cadre, nous sollicitons votre parrainage, qui permettrait à notre candidature d'être officiellement présentée au Conseil constitutionnel.
+
+Seriez-vous disponible pour un bref échange ou une courte rencontre à votre convenance ?
+
+Je reste à votre disposition pour toute question.
+
+Bien cordialement,
+[PRÉNOM] — Bénévole pour la campagne [NOM DU CANDIDAT]
+[TÉLÉPHONE]`
+  },
+  relance: {
+    title:'Relance J+7', step:2,
+    when:'Mail envoyé, sans réponse depuis 7 jours',
+    obj:'Relance — Parrainage présidentiel 2027',
+    body:`Madame/Monsieur le Maire,
+
+Je me permets de revenir vers vous suite à mon message du {{DATE_PREMIER_MAIL}} concernant le parrainage de [NOM DU CANDIDAT] pour la présidentielle 2027.
+
+Je comprends que votre agenda soit chargé. Une réponse, même brève, nous serait très précieuse.
+
+Bien cordialement,
+[PRÉNOM] — Bénévole pour la campagne [NOM DU CANDIDAT]`
+  },
+  appel: {
+    title:"Script d'appel téléphonique", step:3,
+    when:'En discussion — pour préparer votre appel',
+    obj:null,
+    body:`Script pour l'appel :
+
+« Bonjour, je cherche à joindre M./Mme {{NOM_MAIRE}}.
+  Je m'appelle [PRÉNOM], bénévole pour [NOM DU CANDIDAT].
+  Je vous avais contacté par email au sujet du parrainage présidentiel. »
+
+Si disponible :
+→ « Avez-vous pu lire mon message ? »
+→ Si intéressé : « Puis-je passer vous voir à la mairie ? »
+→ Si hésitant : « Je peux vous envoyer une fiche complète sur le projet. »
+→ Si refus : « Je comprends tout à fait, merci pour votre temps. »`
+  },
+  rdv: {
+    title:'Confirmation de rendez-vous', step:4,
+    when:'Date prévue — confirmer avant la visite',
+    obj:'Confirmation de notre RDV du {{DATE_RDV}}',
+    body:`Madame/Monsieur le Maire,
+
+Je vous confirme notre rendez-vous du {{DATE_RDV}} à {{HEURE_RDV}}.
+
+Je me présenterai à la mairie de {{COMMUNE}} avec le formulaire officiel de parrainage du Conseil constitutionnel (simple à remplir, quelques minutes seulement).
+
+N'hésitez pas à me contacter au [TÉLÉPHONE] en cas d'empêchement.
+
+Merci infiniment pour votre engagement.
+
+Bien cordialement,
+[PRÉNOM] — Bénévole pour la campagne [NOM DU CANDIDAT]`
+  }
+};
+
+// ── Tutoriel ──────────────────────────────────────────────────────────────────
+const TUTO = [
+  {icon:'📍',title:'Créez un séjour',desc:"Nommez votre tournée et choisissez vos dates. Tracez votre zone sur la carte (4 clics = un polygone). L'outil génère automatiquement la liste de toutes les communes et maires dans ce périmètre."},
+  {icon:'📋',title:'Consultez et filtrez',desc:'Dans "Avancement", filtrez par séjour ou par statut. Cliquez sur un maire pour ouvrir sa fiche avec email, téléphone, notes et historique complet des contacts.'},
+  {icon:'✉️',title:'Envoyez le premier mail',desc:'Depuis la fiche maire, cliquez "Copier le template". Collez dans votre boîte mail, remplacez les {{variables}}, personnalisez si besoin et envoyez. Passez le statut à "Mail envoyé".'},
+  {icon:'🔄',title:'Relancez et discutez',desc:"Sans réponse après 7 jours → template de relance. Si réponse positive → passez à 'En cours' et utilisez le script d'appel fourni pour préparer votre conversation téléphonique."},
+  {icon:'✅',title:'Collectez la signature',desc:"RDV accepté → confirmez par email (template fourni). Lors de la visite, le maire signe le formulaire officiel du Conseil constitutionnel. Passez le statut à 'Accepté' !"},
+];
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function sendMagicLink(){
+  const email = document.getElementById('auth-email').value.trim();
+  if(!email) return;
+  const btn = document.getElementById('auth-btn');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  const { error } = await sb.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+  const msg = document.getElementById('auth-msg');
+  if(error){
+    msg.textContent = '❌ ' + error.message;
+    btn.disabled = false; btn.textContent = 'Recevoir le lien de connexion';
+  } else {
+    msg.textContent = '✅ Lien envoyé à ' + email + '. Vérifiez votre boîte mail (et les spams).';
+    btn.textContent = 'Lien envoyé ✓';
+  }
+}
+
+async function initAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session) await showApp(session.user);
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if(session){
+      await showApp(session.user);
+    } else {
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+    }
+  });
+}
+
+async function showApp(user){
+  _currentUserId = user.id;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('user-email').textContent = user.email;
+  await loadFromSupabase();
+  setupRealtime();
+  initMap();
+  renderSejours();
+  renderMails();
+  renderTuto();
+}
+
+// ── Supabase data ─────────────────────────────────────────────────────────────
+function setSyncing(on){
+  const dot = document.getElementById('sync-dot');
+  if(dot) dot.className = on ? 'saving' : '';
+}
+
+async function loadFromSupabase(){
+  const [{ data:sData }, { data:cData }] = await Promise.all([
+    sb.from('sejours').select('*').order('created_at'),
+    sb.from('contacts').select('*')
+  ]);
+  sejours = (sData||[]).map(s => ({
+    id: s.id, nom: s.nom, date: s.date||'',
+    polygon: s.polygon||[], communeKeys: s.commune_keys||[]
+  }));
+  contacts = {};
+  (cData||[]).forEach(c => {
+    contacts[c.key] = {
+      statut: c.statut, tel: c.tel||'', email: c.email||'',
+      notes: c.notes||'', history: c.history||[], maire_nom: c.maire_nom||''
+    };
+  });
+}
+
+async function upsertContact(key){
+  setSyncing(true);
+  const c = contacts[key];
+  await sb.from('contacts').upsert({
+    key, statut:c.statut, tel:c.tel||'', email:c.email||'',
+    notes:c.notes||'', history:c.history||[], maire_nom:c.maire_nom||'',
+    updated_at: new Date().toISOString(), updated_by: _currentUserId
+  });
+  setSyncing(false);
+}
+
+function upsertContactDebounced(key){
+  clearTimeout(_saveDebounce[key]);
+  _saveDebounce[key] = setTimeout(() => upsertContact(key), 800);
+}
+
+async function upsertSejour(s){
+  setSyncing(true);
+  await sb.from('sejours').upsert({
+    id:s.id, nom:s.nom, date:s.date||'',
+    polygon:s.polygon, commune_keys:s.communeKeys,
+    created_by: _currentUserId
+  });
+  setSyncing(false);
+}
+
+function setupRealtime(){
+  sb.channel('contacts-rt')
+    .on('postgres_changes', {event:'*', schema:'public', table:'contacts'}, payload => {
+      const c = payload.new;
+      if(!c?.key) return;
+      contacts[c.key] = {
+        statut:c.statut, tel:c.tel||'', email:c.email||'',
+        notes:c.notes||'', history:c.history||[], maire_nom:c.maire_nom||''
+      };
+      renderSejours();
+      if(document.getElementById('page-avancement').classList.contains('on')) renderAvancement();
+    })
+    .subscribe();
+
+  sb.channel('sejours-rt')
+    .on('postgres_changes', {event:'*', schema:'public', table:'sejours'}, async () => {
+      await loadFromSupabase();
+      renderSejours();
+      if(document.getElementById('page-avancement').classList.contains('on')){
+        updateSejourSel(); renderAvancement();
+      }
+    })
+    .subscribe();
+}
+
+// ── CSV parsing ───────────────────────────────────────────────────────────────
+function detectCol(headers, candidates){
+  const h = headers.map(x => x.toLowerCase().replace(/[^a-z0-9]/g,'_'));
+  for(const c of candidates){
+    const i = h.findIndex(x => x.includes(c));
+    if(i >= 0) return headers[i];
+  }
+  return null;
+}
+
+function loadCommunes(input){
+  const file = input.files[0]; if(!file) return;
+  document.getElementById('com-status').textContent = 'Chargement…';
+  Papa.parse(file, {
+    header:true, skipEmptyLines:true,
+    complete(r){
+      const h = r.meta.fields;
+      const cNom = detectCol(h,['nom_commun','libelle_commun','commune','nom','label','name']);
+      const cCp  = detectCol(h,['code_postal','postal','cp','zip']);
+      const cIns = detectCol(h,['code_commune','code_insee','insee','code_com','codgeo']);
+      const cLat = detectCol(h,['lat','latitude','geo_point_2d_a','y_lat','ylat','coordonnees_geo_a']);
+      const cLon = detectCol(h,['lon','lng','longitude','geo_point_2d_b','x_lon','xlon','coordonnees_geo_b']);
+      communes = r.data.filter(row=>row[cNom]&&row[cIns]).map(row=>({
+        code: String(row[cIns]||'').trim().padStart(5,'0'),
+        nom:  String(row[cNom]||'').trim(),
+        cp:   String(row[cCp] ||'').trim(),
+        lat:  parseFloat(String(row[cLat]||'').replace(',','.')) || 0,
+        lon:  parseFloat(String(row[cLon]||'').replace(',','.')) || 0,
+      }));
+      const withCoords = communes.filter(c=>c.lat!==0&&c.lon!==0).length;
+      document.getElementById('com-status').textContent =
+        `✅ ${communes.length.toLocaleString('fr-FR')} communes chargées` +
+        (withCoords < communes.length ? ` (${withCoords.toLocaleString('fr-FR')} avec coordonnées)` : '');
+      document.getElementById('com-btn').textContent = '↩ Remplacer';
+    },
+    error(){ document.getElementById('com-status').textContent = '❌ Erreur de lecture'; }
+  });
+}
+
+function loadMaires(input){
+  const file = input.files[0]; if(!file) return;
+  document.getElementById('mai-status').textContent = 'Chargement…';
+  Papa.parse(file, {
+    header:true, skipEmptyLines:true,
+    complete(r){
+      const h = r.meta.fields;
+      const cIns  = detectCol(h,['code_commune','code_insee','insee','code_com','codgeo','code_de_la_commune']);
+      const cNom  = detectCol(h,['nom_elu','nom_maire','nom','name','nom_de_l']);
+      const cPre  = detectCol(h,['prenom_elu','prenom_maire','prenom','prenom_1','prenom_de_l']);
+      const cFonc = detectCol(h,['libelle_fonction','libelle_de_la_fo','fonction']);
+      maires = {};
+      r.data.forEach(row=>{
+        if(!row[cIns]) return;
+        if(cFonc){ const f=String(row[cFonc]||'').toLowerCase(); if(f&&!f.includes('maire')) return; }
+        const code = String(row[cIns]||'').trim().padStart(5,'0');
+        const nom  = String(row[cNom]||'').trim().toUpperCase();
+        const pre  = String(row[cPre]||'').trim();
+        if(nom) maires[code] = { nom, prenom:pre, full: pre ? pre+' '+nom : nom };
+      });
+      document.getElementById('mai-status').textContent =
+        `✅ ${Object.keys(maires).length.toLocaleString('fr-FR')} maires chargés`;
+      document.getElementById('mai-btn').textContent = '↩ Remplacer';
+    },
+    error(){ document.getElementById('mai-status').textContent = '❌ Erreur de lecture'; }
+  });
+}
+
+// ── Carte Leaflet ─────────────────────────────────────────────────────────────
+let map, mapPoly, pts = [];
+
+function initMap(){
+  map = L.map('map').setView([46.5, 2.5], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click', e => {
+    if(pts.length >= 4) return;
+    pts.push([e.latlng.lat, e.latlng.lng]);
+    renderPts();
+    if(pts.length >= 3){
+      if(mapPoly) map.removeLayer(mapPoly);
+      mapPoly = L.polygon(pts, {color:'#185FA5',weight:2,fillOpacity:.1}).addTo(map);
+      if(pts.length === 4) map.fitBounds(mapPoly.getBounds(),{padding:[20,20]});
+    }
+  });
+  renderPts();
+}
+
+function resetMap(){
+  pts = [];
+  if(mapPoly){ map.removeLayer(mapPoly); mapPoly=null; }
+  renderPts();
+}
+
+function renderPts(){
+  const el = document.getElementById('pts-display');
+  if(!pts.length){ el.innerHTML='<span style="font-size:12px;color:var(--text3)">Aucun point — cliquez sur la carte</span>'; return; }
+  el.innerHTML = pts.map((p,i)=>
+    `<span style="font-size:12px;padding:3px 8px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r)">${i+1}. ${p[0].toFixed(3)}, ${p[1].toFixed(3)}</span>`
+  ).join('');
+}
+
+// ── Point dans polygone ───────────────────────────────────────────────────────
+function pip(pt, poly){
+  const [x,y]=pt; let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const [xi,yi]=poly[i],[xj,yj]=poly[j];
+    if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+
+// ── Générer séjour ────────────────────────────────────────────────────────────
+async function generateSejour(){
+  const nom  = document.getElementById('add-nom').value.trim();
+  const date = document.getElementById('add-date').value.trim();
+  const res  = document.getElementById('gen-result');
+  const err  = msg => res.innerHTML = `<div class="alert" style="background:var(--danger-bg);color:var(--danger)">${msg}</div>`;
+
+  if(!nom)             return err('Donnez un nom au séjour.');
+  if(pts.length < 3)   return err('Tracez une zone sur la carte (minimum 3 points).');
+  if(!communes.length) return err("Chargez d'abord le fichier communes.");
+
+  const hasCrd = communes.some(c=>c.lat&&c.lon);
+  let filtered;
+  if(hasCrd){
+    filtered = communes.filter(c=>c.lat&&c.lon&&pip([c.lat,c.lon],pts));
+    if(!filtered.length) return err("Aucune commune trouvée dans cette zone. Vérifiez que le CSV contient des colonnes lat/lon.");
+  } else {
+    filtered = communes;
+    res.innerHTML = `<div class="alert" style="background:var(--warning-bg);color:var(--warning)">⚠️ Pas de coordonnées — toutes les communes sont ajoutées.</div>`;
+  }
+
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  const communeKeys = filtered.map(c=>c.code);
+  const sej = {id, nom, date, polygon:pts.slice(), communeKeys};
+  sejours.push(sej);
+
+  const newContacts = [];
+  communeKeys.forEach(k => {
+    if(!contacts[k]){
+      contacts[k] = {statut:'Pas encore fait',tel:'',email:'',notes:'',history:[]};
+      newContacts.push({key:k, statut:'Pas encore fait', tel:'', email:'', notes:'', history:[], maire_nom:'', updated_by:_currentUserId});
+    }
+  });
+
+  await upsertSejour(sej);
+  if(newContacts.length) await sb.from('contacts').upsert(newContacts);
+
+  renderSejours(); updateSejourSel();
+  res.innerHTML = `<div class="alert" style="background:var(--success-bg);color:var(--success)">✅ Séjour créé avec ${filtered.length} communes. <a href="#" onclick="filterBySejour('${id}')" style="color:inherit;font-weight:500">Voir l'avancement →</a></div>`;
+  setTimeout(()=>{ document.getElementById('add-nom').value=''; document.getElementById('add-date').value=''; resetMap(); }, 4000);
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goTab(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  if(name==='avancement'){ updateSejourSel(); renderAvancement(); }
+  if(name==='sejours')    { renderSejours(); }
+}
+
+// ── Import sauvegarde ─────────────────────────────────────────────────────────
+function importFromBackup(input){
+  const file = input.files[0]; if(!file) return;
+  const st = document.getElementById('import-status');
+  st.textContent = 'Import en cours…';
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      const sejoursToSave = [], contactsToSave = [];
+      let imported = 0;
+      (data.sejours||[]).forEach((s, si) => {
+        const id = 'imp' + Date.now().toString(36) + si;
+        const communeKeys = (s.communes||[]).map(c=>'imp:'+c.nom+':'+c.cp);
+        sejours.push({id, nom:s.nom, date:s.date||'', polygon:[], communeKeys});
+        sejoursToSave.push({id, nom:s.nom, date:s.date||'', polygon:[], commune_keys:communeKeys, created_by:_currentUserId});
+        (s.communes||[]).forEach(c => {
+          const key = 'imp:'+c.nom+':'+c.cp;
+          if(!contacts[key]){
+            contacts[key] = {statut:c.statut||'Pas encore fait',tel:'',email:'',notes:'',history:[],maire_nom:c.maire||''};
+            contactsToSave.push({key, statut:c.statut||'Pas encore fait', tel:'', email:'', notes:'', history:[], maire_nom:c.maire||'', updated_by:_currentUserId});
+            imported++;
+          }
+        });
+      });
+      await Promise.all([
+        sb.from('sejours').upsert(sejoursToSave),
+        sb.from('contacts').upsert(contactsToSave)
+      ]);
+      renderSejours();
+      st.textContent = '✅ ' + (data.sejours||[]).length + ' séjours importés, ' + imported + ' communes.';
+    }catch(err){
+      st.textContent = '❌ Erreur : ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Page Séjours ──────────────────────────────────────────────────────────────
+function renderSejours(){
+  const allC = Object.values(contacts);
+  const acc  = allC.filter(c=>c.statut==='Accepté').length;
+  const pct  = Math.min(100, acc/500*100).toFixed(1);
+  document.getElementById('prog-lbl').textContent  = `${acc} / 500 — ${pct} %`;
+  document.getElementById('prog-fill').style.width = pct + '%';
+
+  const grid = document.getElementById('sejour-grid');
+  if(!sejours.length){
+    grid.innerHTML = `<div class="scard add" onclick="goTab('add',document.querySelectorAll('.ntab')[1])"><span style="font-size:20px">+</span>Créer votre premier séjour</div>`;
+    return;
+  }
+  grid.innerHTML = sejours.map(s => {
+    const keys=s.communeKeys||[], total=keys.length;
+    const a=keys.filter(k=>contacts[k]?.statut==='Accepté').length;
+    const m=keys.filter(k=>contacts[k]?.statut==='Mail envoyé').length;
+    const d=keys.filter(k=>contacts[k]?.statut==='En cours').length;
+    const pS=total?Math.round(a/total*100):0;
+    return `<div class="scard" onclick="filterBySejour('${s.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <span style="font-size:15px;font-weight:500">${s.nom}</span>
+        <span style="font-size:11px;color:var(--text2)">${s.date||''}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">${total} commune${total>1?'s':''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="badge" style="background:#E1F5EE;color:#0F6E56">${a} acceptées</span>
+        <span class="badge" style="background:#FAEEDA;color:#BA7517">${d} en discussion</span>
+        <span class="badge" style="background:#E6F1FB;color:#185FA5">${m} mails</span>
+      </div>
+      <div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden">
+        <div style="width:${pS}%;height:100%;background:var(--success);border-radius:999px"></div>
+      </div>
+    </div>`;
+  }).join('')
+  + `<div class="scard add" onclick="goTab('add',document.querySelectorAll('.ntab')[1])"><span style="font-size:18px">+</span>Nouveau séjour</div>`;
+}
+
+function filterBySejour(id){
+  document.getElementById('filter-sej').value = id;
+  goTab('avancement', document.querySelectorAll('.ntab')[2]);
+}
+
+// ── Avancement ────────────────────────────────────────────────────────────────
+function updateSejourSel(){
+  const sel=document.getElementById('filter-sej'), cur=sel.value;
+  sel.innerHTML = '<option value="all">Tous</option>' +
+    sejours.map(s=>`<option value="${s.id}" ${s.id===cur?'selected':''}>${s.nom}</option>`).join('');
+}
+
+function buildRows(){
+  const sf=document.getElementById('filter-sej').value;
+  const tf=document.getElementById('filter-stat').value;
+  const rows=[];
+  const cMap = new Map(communes.map(c=>[c.code,c]));
+  const active = sf==='all' ? sejours : sejours.filter(s=>s.id===sf);
+  active.forEach(s => {
+    (s.communeKeys||[]).forEach(key => {
+      let com = cMap.get(key);
+      if(!com){
+        if(key.startsWith('imp:')){
+          const parts=key.split(':'); com={code:key,nom:parts[1]||key,cp:parts[2]||''};
+        } else { com={code:key,nom:key,cp:''}; }
+      }
+      const con2=contacts[key];
+      const mai = maires[key] || (con2?.maire_nom ? {full:con2.maire_nom} : null);
+      const con = contacts[key] || {statut:'Pas encore fait',tel:'',email:'',notes:'',history:[]};
+      rows.push({key,com,mai,con,sej:s});
+    });
+  });
+  return tf==='all' ? rows : rows.filter(r=>r.con.statut===tf);
+}
+
+function renderAvancement(){
+  updateSejourSel();
+  const allKeys=[...new Set(sejours.flatMap(s=>s.communeKeys||[]))];
+  const allCon=allKeys.map(k=>contacts[k]||{statut:'Pas encore fait'});
+  const cnt=s=>allCon.filter(c=>c.statut===s).length;
+  const acc=cnt('Accepté'), pct=(acc/500*100).toFixed(1);
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat"><div class="stat-label">Total mairies</div><div class="stat-val">${allKeys.length}</div></div>
+    <div class="stat"><div class="stat-label">Acceptées</div><div class="stat-val" style="color:var(--success)">${acc}</div></div>
+    <div class="stat"><div class="stat-label">En discussion</div><div class="stat-val" style="color:var(--warning)">${cnt('En cours')}</div></div>
+    <div class="stat"><div class="stat-label">Mails envoyés</div><div class="stat-val" style="color:var(--info)">${cnt('Mail envoyé')}</div></div>
+    <div class="stat"><div class="stat-label">Date prévue</div><div class="stat-val">${cnt('Date prévue')}</div></div>
+    <div class="stat"><div class="stat-label">Refusées</div><div class="stat-val" style="color:var(--danger)">${cnt('Refusé')}</div></div>`;
+  document.getElementById('prog-av-lbl').textContent  = `${acc} / 500 — ${pct} %`;
+  document.getElementById('prog-av-fill').style.width = Math.min(100,parseFloat(pct)) + '%';
+  renderTable();
+}
+
+function renderTable(){
+  _rows=buildRows();
+  document.getElementById('count-lbl').textContent = `${_rows.length} commune${_rows.length>1?'s':''}`;
+  document.getElementById('av-body').innerHTML = _rows.map((r,i) => {
+    const sc=SC[r.con.statut]||SC['Pas encore fait'];
+    return `<tr class="${selIdx===i?'sel':''}" onclick="showDetail(${i})">
+      <td title="${r.com.nom}">${r.com.nom}</td>
+      <td style="color:var(--text2)" title="${r.mai?r.mai.full:'—'}">${r.mai?r.mai.full:'—'}</td>
+      <td style="color:var(--text2)">${r.sej.nom}</td>
+      <td><span class="badge" style="background:${sc.bg};color:${sc.c}">${r.con.statut}</span></td>
+    </tr>`;
+  }).join('');
+  if(_rows.length>0&&selIdx===null) showDetail(0);
+  else if(selIdx!==null&&_rows[selIdx]) showDetail(selIdx);
+}
+
+// ── Panneau détail ────────────────────────────────────────────────────────────
+function showDetail(i){
+  selIdx=i;
+  document.querySelectorAll('#av-body tr').forEach((tr,idx)=>tr.classList.toggle('sel',idx===i));
+  const {key,com,mai,con,sej}=_rows[i];
+  const sc=SC[con.statut]||SC['Pas encore fait'];
+  const si=WF.indexOf(con.statut);
+  const wf=WF.map((s,wi)=>{
+    const done=wi<si,curr=wi===si,wsc=SC[s];
+    return `<div class="wf-step" style="background:${done?'#E1F5EE':curr?wsc.bg:'transparent'};color:${done?'#0F6E56':curr?wsc.c:'var(--text3)'};font-weight:${curr?500:400}">
+      <span style="font-size:10px">${done?'✓':curr?'●':'○'}</span>${WL[s]||s}
+    </div>${wi<WF.length-1?'<div class="wf-conn"></div>':''}`;
+  }).join('');
+  const tpl=sc.tpl?TPLS[sc.tpl]:null;
+  const act=tpl
+    ?`<div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:14px">
+        <div class="dp-lbl" style="margin-bottom:6px">Prochaine action</div>
+        <button class="btn btn-full" onclick="cpTpl('${sc.tpl}','${com.nom.replace(/'/g,"\\'")}','${(mai?mai.full:'').replace(/'/g,"\\'")}',this)">
+          📋 Copier — ${tpl.title}
+        </button>
+      </div>`
+    :con.statut==='Accepté'
+      ?`<div class="alert" style="margin-bottom:14px;text-align:center;background:var(--success-bg);color:var(--success)">✅ Parrainage obtenu !</div>`
+      :`<div class="alert" style="margin-bottom:14px;text-align:center;background:var(--danger-bg);color:var(--danger)">❌ Refus enregistré</div>`;
+  const hist=con.history.length
+    ?[...con.history].reverse().map(h=>`<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:0.5px solid var(--border)">${h}</div>`).join('')
+    :'<div style="font-size:12px;color:var(--text3)">Aucune action encore.</div>';
+
+  document.getElementById('detail-panel').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <div>
+        <div style="font-size:16px;font-weight:500">${com.nom} <span style="font-size:13px;color:var(--text2);font-weight:400">${com.cp}</span></div>
+        <div style="font-size:13px;color:var(--text2);margin-top:2px">${mai?mai.full:'—'}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:1px">${sej.nom}</div>
+      </div>
+      <span class="badge" style="background:${sc.bg};color:${sc.c}">${con.statut}</span>
+    </div>
+    <div style="margin-bottom:14px"><div class="dp-lbl">Parcours</div>${wf}</div>
+    ${act}
+    <div class="field">
+      <div class="dp-lbl">Changer le statut</div>
+      <select onchange="updateStatut('${key}',this.value)" style="font-size:13px;padding:6px 10px;width:100%">
+        ${Object.keys(SC).map(s=>`<option ${con.statut===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row2 field">
+      <div>
+        <label>Téléphone</label>
+        <input type="tel" value="${con.tel||''}" placeholder="06 00 00 00 00" oninput="saveField('${key}','tel',this.value)">
+      </div>
+      <div>
+        <label>Email mairie</label>
+        <input type="email" value="${con.email||''}" placeholder="mairie@commune.fr" oninput="saveField('${key}','email',this.value)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea rows="2" placeholder="Notes libres…" oninput="saveField('${key}','notes',this.value)" style="resize:none">${con.notes||''}</textarea>
+    </div>
+    <div class="field">
+      <div class="dp-lbl">Ajouter au journal</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="h-inp-${key}" placeholder="Ex : Mail envoyé (Marie)" style="flex:1">
+        <button class="btn" onclick="addHistory('${key}')" style="white-space:nowrap;font-size:12px;padding:6px 10px">Ajouter</button>
+      </div>
+    </div>
+    <div><div class="dp-lbl">Journal</div>${hist}</div>`;
+}
+
+async function updateStatut(key, val){
+  if(!contacts[key]) contacts[key]={statut:'Pas encore fait',tel:'',email:'',notes:'',history:[]};
+  contacts[key].statut=val;
+  const d=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+  contacts[key].history.push(`${d} — Statut → ${val}`);
+  await upsertContact(key);
+  renderAvancement();
+  if(selIdx!==null&&_rows[selIdx]) showDetail(selIdx);
+}
+
+function saveField(key, field, val){
+  if(!contacts[key]) contacts[key]={statut:'Pas encore fait',tel:'',email:'',notes:'',history:[]};
+  contacts[key][field]=val;
+  upsertContactDebounced(key);
+}
+
+async function addHistory(key){
+  const inp=document.getElementById('h-inp-'+key);
+  const val=inp?.value.trim(); if(!val) return;
+  if(!contacts[key]) contacts[key]={statut:'Pas encore fait',tel:'',email:'',notes:'',history:[]};
+  const d=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+  contacts[key].history.push(`${d} — ${val}`);
+  await upsertContact(key);
+  if(inp) inp.value='';
+  if(selIdx!==null&&_rows[selIdx]) showDetail(selIdx);
+}
+
+// ── Copie templates ───────────────────────────────────────────────────────────
+function cpTpl(key, commune, maire, el){
+  const t=TPLS[key]; if(!t) return;
+  const txt=(t.obj?'Objet : '+t.obj.replace(/\{\{COMMUNE\}\}/g,commune)+'\n\n':'')
+    +t.body.replace(/\{\{COMMUNE\}\}/g,commune).replace(/\{\{NOM_MAIRE\}\}/g,maire);
+  navigator.clipboard.writeText(txt).catch(()=>{});
+  const orig=el.innerHTML; el.innerHTML='✅ Copié !';
+  setTimeout(()=>el.innerHTML=orig, 2000);
+}
+
+// ── Page Mails types ──────────────────────────────────────────────────────────
+function renderMails(){
+  document.getElementById('mails-container').innerHTML = Object.entries(TPLS).map(([k,t])=>`
+    <div class="tplcard">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <span style="font-size:12px;color:var(--text3);font-weight:500">Étape ${t.step}</span>
+          <div style="font-size:15px;font-weight:500;margin-top:2px">${t.title}</div>
+        </div>
+        <span style="font-size:11px;color:var(--text2);text-align:right;max-width:160px">${t.when}</span>
+      </div>
+      ${t.obj?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px"><strong>Objet :</strong> ${t.obj}</div>`:''}
+      <div class="tplpre">${t.body}</div>
+      <button class="btn" onclick="cpTpl('${k}','{{COMMUNE}}','{{NOM_MAIRE}}',this)" style="font-size:12px">📋 Copier le template complet</button>
+    </div>`).join('');
+}
+
+// ── Page Tutoriel ─────────────────────────────────────────────────────────────
+function renderTuto(){
+  document.getElementById('tuto-container').innerHTML = TUTO.map((s,i)=>`
+    <div class="tuto-item" style="margin-bottom:${i<TUTO.length-1?0:'1.5rem'}">
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+        <div class="tuto-icon">${s.icon}</div>
+        ${i<TUTO.length-1?'<div class="tuto-conn"></div>':''}
+      </div>
+      <div style="padding-bottom:${i<TUTO.length-1?'1.5rem':0}">
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px">${i+1}. ${s.title}</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">${s.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+initAuth();
+renderMails();
+renderTuto();
+</script>
+</body>
+</html>
