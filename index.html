@@ -35,7 +35,8 @@
 }}
 body{background:var(--bg3);color:var(--text);min-height:100vh}
 /* Nav */
-nav{background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:2px;position:sticky;top:0;z-index:200;flex-wrap:wrap}
+nav{background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:2px;position:sticky;top:0;z-index:200;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
 .brand{font-size:15px;font-weight:500;padding:14px 16px 14px 0;border-right:0.5px solid var(--border);margin-right:6px;white-space:nowrap}
 .brand span{color:var(--text2)}
 .ntab{padding:13px 14px;font-size:13px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:var(--text2);font-family:inherit;white-space:nowrap}
@@ -89,7 +90,7 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
 .field{margin-bottom:14px}
 .row2{display:grid;gap:12px;grid-template-columns:1fr 1fr}
 /* Map */
-#map{height:300px;border-radius:var(--r);overflow:hidden;border:0.5px solid var(--border);margin:10px 0}
+#map{height:380px;border-radius:var(--r);overflow:hidden;border:0.5px solid var(--border);margin:10px 0}
 /* Step title */
 .step-t{font-size:15px;font-weight:500;margin:1.5rem 0 12px;display:flex;align-items:center;gap:8px}
 .step-n{width:24px;height:24px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
@@ -624,6 +625,7 @@ function goTab(name, btn){
   if(btn) btn.classList.add('on');
   if(name==='avancement'){ updateSejourSel(); renderAvancement(); }
   if(name==='sejours')    { renderSejours(); }
+  if(name==='add' && map) { setTimeout(()=>map.invalidateSize(), 50); }
 }
 
 // ── Import sauvegarde ─────────────────────────────────────────────────────────
